@@ -1,0 +1,297 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX 256
+#define BUFFER_SIZE 10000
+
+/* struktury danych */
+
+typedef struct HuffNode {
+    unsigned char symbol;
+    int freq;
+    struct HuffNode *left, *right;
+} HuffNode;
+
+typedef struct {
+    HuffNode* data[MAX];
+    int size;
+} MinHeap;
+
+/* BIT I/O */
+
+
+typedef struct {
+    FILE* f;
+    unsigned char buffer;
+    int count;
+} BitWriter;
+
+typedef struct {
+    FILE* f;
+    unsigned char buffer;
+    int count;
+} BitReader;
+
+void bw_init(BitWriter* bw, FILE* f) {
+    bw->f = f;
+    bw->buffer = 0;
+    bw->count = 0;
+}
+
+void bw_write(BitWriter* bw, int bit) {
+    bw->buffer = (bw->buffer << 1) | bit;
+    bw->count++;
+    if (bw->count == 8) {
+        fputc(bw->buffer, bw->f);
+        bw->buffer = 0;
+        bw->count = 0;
+    }
+}
+
+void bw_flush(BitWriter* bw) {
+    if (bw->count > 0) {
+        bw->buffer <<= (8 - bw->count);
+        fputc(bw->buffer, bw->f);
+    }
+}
+
+void br_init(BitReader* br, FILE* f) {
+    br->f = f;
+    br->buffer = 0;
+    br->count = 0;
+}
+
+int br_read(BitReader* br) {
+    if (br->count == 0) {
+        int c = fgetc(br->f);
+        if (c == EOF) return -1;
+        br->buffer = c;
+        br->count = 8;
+    }
+    int bit = (br->buffer & 0x80) != 0;
+    br->buffer <<= 1;
+    br->count--;
+    return bit;
+}
+
+/* funkcje obslugi kopca minimalnego  */
+
+
+int parent(int i) { return (i - 1) / 2; }
+int left(int i) { return 2 * i + 1; }
+int right(int i) { return 2 * i + 2; }
+
+void swap(HuffNode** a, HuffNode** b) {
+    HuffNode* t = *a;
+    *a = *b;
+    *b = t;
+}
+
+void siftUp(MinHeap* h, int i) {
+    while (i > 0 && h->data[parent(i)]->freq > h->data[i]->freq) {
+        swap(&h->data[i], &h->data[parent(i)]);
+        i = parent(i);
+    }
+}
+
+void siftDown(MinHeap* h, int i) {
+    int s = i;
+    int l = left(i), r = right(i);
+
+    if (l < h->size && h->data[l]->freq < h->data[s]->freq) s = l;
+    if (r < h->size && h->data[r]->freq < h->data[s]->freq) s = r;
+
+    if (s != i) {
+        swap(&h->data[i], &h->data[s]);
+        siftDown(h, s);
+    }
+}
+
+void heapInsert(MinHeap* h, HuffNode* n) {
+    h->data[h->size] = n;
+    siftUp(h, h->size);
+    h->size++;
+}
+
+HuffNode* heapExtractMin(MinHeap* h) {
+    HuffNode* m = h->data[0];
+    h->data[0] = h->data[--h->size];
+    siftDown(h, 0);
+    return m;
+}
+
+/* HUFFMAN */
+
+
+HuffNode* newNode(unsigned char c, int f) {
+    HuffNode* n = malloc(sizeof(HuffNode));
+    n->symbol = c;
+    n->freq = f;
+    n->left = n->right = NULL;
+    return n;
+}
+
+HuffNode* buildTree(int freq[]) {
+    MinHeap h = {0};
+
+    for (int i = 0; i < MAX; i++)
+        if (freq[i] > 0)
+            heapInsert(&h, newNode(i, freq[i]));
+
+    while (h.size > 1) {
+        HuffNode* a = heapExtractMin(&h);
+        HuffNode* b = heapExtractMin(&h);
+        HuffNode* p = newNode(0, a->freq + b->freq);
+        p->left = a;
+        p->right = b;
+        heapInsert(&h, p);
+    }
+    return heapExtractMin(&h);
+}
+
+void genCodes(HuffNode* r, char codes[MAX][MAX], char* buf, int d) {
+    if (!r) return;
+
+    if (!r->left && !r->right) {
+        buf[d] = 0;
+        strcpy(codes[r->symbol], buf);
+        return;
+    }
+
+    buf[d] = '0';
+    genCodes(r->left, codes, buf, d + 1);
+    buf[d] = '1';
+    genCodes(r->right, codes, buf, d + 1);
+}
+  /* Kompresja */
+
+void compressFile(char* inFile, char* outFile) {
+    FILE* in = fopen(inFile, "r");
+    FILE* out = fopen(outFile, "wb");
+    if (!in || !out) return;
+
+    int freq[MAX] = {0};
+    unsigned char text[BUFFER_SIZE];
+    int len = 0, c;
+
+    while ((c = fgetc(in)) != EOF) {
+        text[len++] = c;
+        freq[c]++;
+    }
+    fclose(in);
+
+    HuffNode* root = buildTree(freq);
+    char codes[MAX][MAX] = {0}, buf[MAX];
+    genCodes(root, codes, buf, 0);
+
+    fwrite(freq, sizeof(int), MAX, out);
+    fwrite(&len, sizeof(int), 1, out);   // <<< KLUCZOWA POPRAWKA
+
+    BitWriter bw;
+    bw_init(&bw, out);
+
+    for (int i = 0; i < len; i++)
+        for (int j = 0; codes[text[i]][j]; j++)
+            bw_write(&bw, codes[text[i]][j] == '1');
+
+    bw_flush(&bw);
+    fclose(out);
+
+    printf("Kompresja zakonczona.\n");
+}
+
+/* Dekompresja */
+
+void decompressFile(char* inFile, char* outFile) {
+    FILE* in = fopen(inFile, "rb");
+    FILE* out = fopen(outFile, "w");
+    if (!in || !out) return;
+
+    int freq[MAX];
+    fread(freq, sizeof(int), MAX, in);
+
+    int total;
+    fread(&total, sizeof(int), 1, in);   // <<< KLUCZOWA POPRAWKA
+
+    HuffNode* root = buildTree(freq);
+    HuffNode* cur = root;
+
+    BitReader br;
+    br_init(&br, in);
+
+    int bit, written = 0;
+    while (written < total && (bit = br_read(&br)) != -1) {
+        cur = bit ? cur->right : cur->left;
+        if (!cur->left && !cur->right) {
+            fputc(cur->symbol, out);
+            written++;
+            cur = root;
+        }
+    }
+
+    fclose(in);
+    fclose(out);
+    printf("Dekompresja zakonczona.\n");
+}
+
+/* Menu */
+
+void runMenu() {
+    int choice;
+    char inFile[256], outFile[256], text[BUFFER_SIZE];
+
+    while (1) {
+        printf("\n1 - Kompresja z pliku\n");
+        printf("2 - Dekompresja z pliku\n");
+        printf("3 - Kompresja reczna\n");
+        printf("4 - Wyjscie\n");
+        printf("Wybor: ");
+        scanf("%d", &choice);
+        getchar();
+
+        switch (choice) {
+            case 1:
+                printf("Plik wejsciowy: ");
+                scanf("%s", inFile);
+                printf("Plik wyjsciowy: ");
+                scanf("%s", outFile);
+                compressFile(inFile, outFile);
+                break;
+
+            case 2:
+                printf("Plik wejsciowy: ");
+                scanf("%s", inFile);
+                printf("Plik wyjsciowy: ");
+                scanf("%s", outFile);
+                decompressFile(inFile, outFile);
+                break;
+
+            case 3: {
+                printf("Wpisz tekst: ");
+                fgets(text, BUFFER_SIZE, stdin);
+
+                FILE* tmp = fopen("tmp.txt", "w");
+                fprintf(tmp, "%s", text);
+                fclose(tmp);
+
+                printf("Plik wyjsciowy: ");
+                scanf("%s", outFile);
+
+                compressFile("tmp.txt", outFile);
+                remove("tmp.txt");
+                break;
+            }
+
+            case 4:
+                exit(0);
+        }
+    }
+}
+
+/* main */
+
+int main() {
+    runMenu();
+    return 0;
+}
