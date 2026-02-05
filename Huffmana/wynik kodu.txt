@@ -4,10 +4,20 @@ mkoszalka@sigma:~$ touch 1.txt
 mkoszalka@sigma:~$ nano 1.txt
 mkoszalka@sigma:~$ ./program
 
+Kompresja :
+
+mkoszalka@sigma:~$ nano main.c
+mkoszalka@sigma:~$ gcc main.c -o program
+mkoszalka@sigma:~$ nano 1.txt
+mkoszalka@sigma:~$ cat 1.txt
+ala ma kota
+mkoszalka@sigma:~$ ./program
+
 1 - Kompresja z pliku
 2 - Dekompresja z pliku
 3 - Kompresja reczna
-4 - Wyjscie
+4 - Demo kolejki priorytetowej
+5 - Wyjscie
 Wybor: 1
 Plik wejsciowy: 1.txt
 Plik wyjsciowy: 2.txt
@@ -16,9 +26,12 @@ Kompresja zakonczona.
 1 - Kompresja z pliku
 2 - Dekompresja z pliku
 3 - Kompresja reczna
-4 - Wyjscie
-Wybor: 4
-mkoszalka@sigma:~$ xxd 2.txt Wynik:
+4 - Demo kolejki priorytetowej
+5 - Wyjscie
+Wybor: 5
+mkoszalka@sigma:~$ cat 1.txt
+ala ma kota
+mkoszalka@sigma:~$ xxd 2.txt
 00000000: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 00000010: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 00000020: 0000 0000 0000 0000 0100 0000 0000 0000  ................
@@ -84,12 +97,16 @@ mkoszalka@sigma:~$ xxd 2.txt Wynik:
 000003e0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 000003f0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 00000400: 0c00 0000 535b 4f7a 00                   ....S[Oz.
-mkoszalka@sigma:~$ ./program
+
+
+2.Dekompresja
+
 
 1 - Kompresja z pliku
 2 - Dekompresja z pliku
 3 - Kompresja reczna
-4 - Wyjscie
+4 - Demo kolejki priorytetowej
+5 - Wyjscie
 Wybor: 2
 Plik wejsciowy: 2.txt
 Plik wyjsciowy: 3.txt
@@ -98,18 +115,20 @@ Dekompresja zakonczona.
 1 - Kompresja z pliku
 2 - Dekompresja z pliku
 3 - Kompresja reczna
-4 - Wyjscie
-Wybor: 4
-mkoszalka@sigma:~$ cat.3.txt
-cat.3.txt: command not found
-mkoszalka@sigma:~$ cat 3.txt Wynik:
+4 - Demo kolejki priorytetowej
+5 - Wyjscie
+Wybor: 5
+mkoszalka@sigma:~$ cat 3.txt
 ala ma kota
-mkoszalka@sigma:~$ ./program
+mkoszalka@sigma:~$
 
+
+3.Kompresja Reczna 
 1 - Kompresja z pliku
 2 - Dekompresja z pliku
 3 - Kompresja reczna
-4 - Wyjscie
+4 - Demo kolejki priorytetowej
+5 - Wyjscie
 Wybor: 3
 Wpisz tekst: ala ma kota
 Plik wyjsciowy: 4.txt
@@ -118,9 +137,10 @@ Kompresja zakonczona.
 1 - Kompresja z pliku
 2 - Dekompresja z pliku
 3 - Kompresja reczna
-4 - Wyjscie
-Wybor: 4
-mkoszalka@sigma:~$ xxd 4.txt Wynik:
+4 - Demo kolejki priorytetowej
+5 - Wyjscie
+Wybor: 5
+mkoszalka@sigma:~$ xxd 4.txt
 00000000: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 00000010: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 00000020: 0000 0000 0000 0000 0100 0000 0000 0000  ................
@@ -129,7 +149,7 @@ mkoszalka@sigma:~$ xxd 4.txt Wynik:
 00000050: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 00000060: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 00000070: 0000 0000 0000 0000 0000 0000 0000 0000  ................
-00000080: 0200 0000 0000 0000 0000 0000 0000 0000  ................
+00000080: 0300 0000 0000 0000 0000 0000 0000 0000  ................
 00000090: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 000000a0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 000000b0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
@@ -185,4 +205,23 @@ mkoszalka@sigma:~$ xxd 4.txt Wynik:
 000003d0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 000003e0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
 000003f0: 0000 0000 0000 0000 0000 0000 0000 0000  ................
-00000400: 0c00 0000 535b 4f7a 00                   ....S[Oz.
+00000400: 0d00 0000 ba7e 7419 c0                   .....~t..
+
+
+4. Kolejka Priorytowa: 
+1 - Kompresja z pliku
+2 - Dekompresja z pliku
+3 - Kompresja reczna
+4 - Demo kolejki priorytetowej
+5 - Wyjscie
+Wybor: 4
+
+--- DEMO KOLEJKI PRIORYTETOWEJ ---
+Dodaje: A(5), B(2), C(8)
+Aktualna kolejka: (B,2) (A,5) (C,8)
+Usuwam min: B
+Aktualna kolejka: (A,5) (C,8)
+Zmieniam priorytet A -> 1
+Aktualna kolejka: (A,1) (C,8)
+Usuwam min po zmianie: A
+Aktualna kolejka: (C,8)
