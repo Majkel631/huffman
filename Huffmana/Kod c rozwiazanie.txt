@@ -5,7 +5,7 @@
 #define MAX 256
 #define BUFFER_SIZE 10000
 
-/* struktury danych */
+/* STRUKTURY */
 
 typedef struct HuffNode {
     unsigned char symbol;
@@ -18,8 +18,7 @@ typedef struct {
     int size;
 } MinHeap;
 
-/* BIT I/O */
-
+/* bit I/O */
 
 typedef struct {
     FILE* f;
@@ -75,8 +74,7 @@ int br_read(BitReader* br) {
     return bit;
 }
 
-/* funkcje obslugi kopca minimalnego  */
-
+/* Kompie minimalny */
 
 int parent(int i) { return (i - 1) / 2; }
 int left(int i) { return 2 * i + 1; }
@@ -115,14 +113,34 @@ void heapInsert(MinHeap* h, HuffNode* n) {
 }
 
 HuffNode* heapExtractMin(MinHeap* h) {
+    if (h->size == 0) return NULL;
     HuffNode* m = h->data[0];
     h->data[0] = h->data[--h->size];
     siftDown(h, 0);
     return m;
 }
 
-/* HUFFMAN */
+void heapChangePriority(MinHeap* h, int index, int newFreq) {
+    if (index < 0 || index >= h->size) return;
+    int old = h->data[index]->freq;
+    h->data[index]->freq = newFreq;
+    if (newFreq < old)
+        siftUp(h, index);
+    else
+        siftDown(h, index);
+}
 
+/* wypisanie kolejki */
+
+void printHeap(MinHeap* h) {
+    printf("Aktualna kolejka: ");
+    for (int i = 0; i < h->size; i++) {
+        printf("(%c,%d) ", h->data[i]->symbol, h->data[i]->freq);
+    }
+    printf("\n");
+}
+
+/* Huffman */
 
 HuffNode* newNode(unsigned char c, int f) {
     HuffNode* n = malloc(sizeof(HuffNode));
@@ -164,7 +182,8 @@ void genCodes(HuffNode* r, char codes[MAX][MAX], char* buf, int d) {
     buf[d] = '1';
     genCodes(r->right, codes, buf, d + 1);
 }
-  /* Kompresja */
+
+/* Kompresja */
 
 void compressFile(char* inFile, char* outFile) {
     FILE* in = fopen(inFile, "r");
@@ -186,7 +205,7 @@ void compressFile(char* inFile, char* outFile) {
     genCodes(root, codes, buf, 0);
 
     fwrite(freq, sizeof(int), MAX, out);
-    fwrite(&len, sizeof(int), 1, out);   // <<< KLUCZOWA POPRAWKA
+    fwrite(&len, sizeof(int), 1, out);
 
     BitWriter bw;
     bw_init(&bw, out);
@@ -212,7 +231,7 @@ void decompressFile(char* inFile, char* outFile) {
     fread(freq, sizeof(int), MAX, in);
 
     int total;
-    fread(&total, sizeof(int), 1, in);   // <<< KLUCZOWA POPRAWKA
+    fread(&total, sizeof(int), 1, in);
 
     HuffNode* root = buildTree(freq);
     HuffNode* cur = root;
@@ -235,6 +254,32 @@ void decompressFile(char* inFile, char* outFile) {
     printf("Dekompresja zakonczona.\n");
 }
 
+/* Dane Kolejki */
+
+void demoPriorityQueue() {
+    printf("\n--- DEMO KOLEJKI PRIORYTETOWEJ ---\n");
+
+    MinHeap h = {0};
+
+    printf("Dodaje: A(5), B(2), C(8)\n");
+    heapInsert(&h, newNode('A', 5));
+    heapInsert(&h, newNode('B', 2));
+    heapInsert(&h, newNode('C', 8));
+    printHeap(&h);
+
+    HuffNode* m = heapExtractMin(&h);
+    printf("Usuwam min: %c\n", m->symbol);
+    printHeap(&h);
+
+    printf("Zmieniam priorytet A -> 1\n");
+    heapChangePriority(&h, 0, 1);
+    printHeap(&h);
+
+    m = heapExtractMin(&h);
+    printf("Usuwam min po zmianie: %c\n", m->symbol);
+    printHeap(&h);
+}
+
 /* Menu */
 
 void runMenu() {
@@ -245,7 +290,8 @@ void runMenu() {
         printf("\n1 - Kompresja z pliku\n");
         printf("2 - Dekompresja z pliku\n");
         printf("3 - Kompresja reczna\n");
-        printf("4 - Wyjscie\n");
+        printf("4 - Demo kolejki priorytetowej\n");
+        printf("5 - Wyjscie\n");
         printf("Wybor: ");
         scanf("%d", &choice);
         getchar();
@@ -258,7 +304,6 @@ void runMenu() {
                 scanf("%s", outFile);
                 compressFile(inFile, outFile);
                 break;
-
             case 2:
                 printf("Plik wejsciowy: ");
                 scanf("%s", inFile);
@@ -266,30 +311,26 @@ void runMenu() {
                 scanf("%s", outFile);
                 decompressFile(inFile, outFile);
                 break;
-
             case 3: {
                 printf("Wpisz tekst: ");
                 fgets(text, BUFFER_SIZE, stdin);
-
                 FILE* tmp = fopen("tmp.txt", "w");
                 fprintf(tmp, "%s", text);
                 fclose(tmp);
-
                 printf("Plik wyjsciowy: ");
                 scanf("%s", outFile);
-
                 compressFile("tmp.txt", outFile);
                 remove("tmp.txt");
                 break;
             }
-
             case 4:
+                demoPriorityQueue();
+                break;
+            case 5:
                 exit(0);
         }
     }
 }
-
-/* main */
 
 int main() {
     runMenu();
