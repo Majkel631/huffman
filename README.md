@@ -6,5 +6,5 @@ Algorytm konstruuje optymalne drzewo binarne na podstawie częstotliwości wyst�
 Pliki wyjściowe zapisywane są w formacie binarnym
 
 Wymagania
-Kompilator języka C (np. gcc)
+Kompilator języka C (gcc)
 System operacyjny obsługujący pliki tekstowe i binarne
